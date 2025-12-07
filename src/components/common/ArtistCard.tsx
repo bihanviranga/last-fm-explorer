@@ -1,6 +1,6 @@
 import { CardRoot, CardBody, Image, Heading, Text } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
-import { getBestImage, encodeArtistName } from '../../utils/helpers';
+import { getBestImage, encodeArtistName, getPlaceholderImage } from '../../utils/helpers';
 import { useColorModeStore } from '../../store/useColorModeStore';
 import type { Artist } from '../../api/types';
 import { useState } from 'react';
@@ -29,7 +29,7 @@ export default function ArtistCard({ artist }: ArtistCardProps) {
       h="100%"
     >
       <Image
-        src={imgError ? 'https://via.placeholder.com/300x300?text=No+Image' : imageUrl}
+        src={imgError ? getPlaceholderImage() : imageUrl}
         alt={artist.name}
         fit="cover"
         h="200px"

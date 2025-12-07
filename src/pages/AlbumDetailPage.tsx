@@ -10,7 +10,7 @@ import {
   Grid,
 } from '@chakra-ui/react';
 import { getAlbumInfo } from '../api/lastfm';
-import { getBestImage, decodeArtistName, encodeArtistName } from '../utils/helpers';
+import { getBestImage, decodeArtistName, encodeArtistName, getPlaceholderImage } from '../utils/helpers';
 import { useColorModeStore } from '../store/useColorModeStore';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
@@ -135,7 +135,7 @@ export default function AlbumDetailPage() {
                 borderRadius="lg"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = 'https://via.placeholder.com/300x300?text=No+Image';
+                  target.src = getPlaceholderImage();
                 }}
               />
             </Box>
