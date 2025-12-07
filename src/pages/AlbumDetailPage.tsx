@@ -29,56 +29,97 @@ export default function AlbumDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const isLoadingRef = useRef(false);
   const lastAlbumRef = useRef<string>('');
+  const cancelledRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    const currentAlbumKey = `${decodedArtistName}-${decodedAlbumName}`;
+
+    // Reset cancelled flag when album changes
+    if (lastAlbumRef.current !== currentAlbumKey) {
+      cancelledRef.current = false;
+      lastAlbumRef.current = currentAlbumKey;
+      isLoadingRef.current = false;
+    }
 
     const loadAlbum = async () => {
       if (!decodedArtistName || !decodedAlbumName) {
         setIsLoading(false);
+        setAlbum(null);
         return;
       }
 
       const albumKey = `${decodedArtistName}-${decodedAlbumName}`;
 
-      // Prevent loading the same album multiple times
-      if (lastAlbumRef.current === albumKey) {
-        if (isLoadingRef.current) {
-          return;
-        }
-      }
-
-      // Prevent multiple simultaneous calls
-      if (isLoadingRef.current) {
+      // Prevent multiple simultaneous calls for the same album
+      if (isLoadingRef.current && lastAlbumRef.current === albumKey) {
         return;
       }
 
-      lastAlbumRef.current = albumKey;
+      // Check if album key changed
+      if (lastAlbumRef.current !== albumKey) {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort(); // Abort previous request
+        }
+        lastAlbumRef.current = albumKey;
+        cancelledRef.current = false;
+        isLoadingRef.current = false;
+        setAlbum(null); // Clear previous album
+      }
+
       isLoadingRef.current = true;
       setIsLoading(true);
       setError(null);
+      setAlbum(null); // Clear previous album while loading
+
+      abortControllerRef.current = new AbortController();
+      const signal = abortControllerRef.current.signal;
 
       try {
-        const response = await getAlbumInfo(decodedArtistName, decodedAlbumName);
-        
-        if (cancelled) return;
-        
+        const response = await getAlbumInfo(decodedArtistName, decodedAlbumName, signal);
+
+        if (signal.aborted) {
+          return;
+        }
+
+        // Only update if album hasn't changed and not cancelled
+        if (currentAlbumKey !== `${decodedArtistName}-${decodedAlbumName}` || cancelledRef.current) {
+          return;
+        }
+
         setAlbum(response.album);
       } catch (err) {
-        if (cancelled) return;
+        if (signal.aborted || (err instanceof Error && err.message === 'Request cancelled')) {
+          return;
+        }
+        // Only update if album hasn't changed and not cancelled
+        if (currentAlbumKey !== `${decodedArtistName}-${decodedAlbumName}` || cancelledRef.current) {
+          return;
+        }
         setError(err instanceof Error ? err.message : 'Failed to load album details');
       } finally {
-        if (!cancelled) {
+        // Only update loading if album hasn't changed and not cancelled
+        if (currentAlbumKey === `${decodedArtistName}-${decodedAlbumName}` && !cancelledRef.current) {
           setIsLoading(false);
         }
-        isLoadingRef.current = false;
+        // Only reset ref if this was for the current album
+        if (lastAlbumRef.current === albumKey) {
+          isLoadingRef.current = false;
+        }
+        abortControllerRef.current = null;
       }
     };
 
     loadAlbum();
 
     return () => {
-      cancelled = true;
+      // Only cancel if album is actually changing
+      if (currentAlbumKey !== `${decodedArtistName}-${decodedAlbumName}`) {
+        cancelledRef.current = true;
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+      }
     };
   }, [decodedArtistName, decodedAlbumName]);
 

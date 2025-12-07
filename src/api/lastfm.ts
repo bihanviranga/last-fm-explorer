@@ -35,6 +35,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  */
 async function apiRequest<T extends object>(
   params: Record<string, string | number>,
+  signal?: AbortSignal,
   retries = MAX_RETRIES
 ): Promise<T> {
   const searchParams = new URLSearchParams({
@@ -54,6 +55,7 @@ async function apiRequest<T extends object>(
           'User-Agent': 'last-fm-frontend/1.0.0',
         },
         timeout: REQUEST_TIMEOUT,
+        signal,
       });
 
       const data = response.data;
@@ -74,6 +76,11 @@ async function apiRequest<T extends object>(
       // Otherwise, return data directly (info/chart methods)
       return data as T;
     } catch (error) {
+      // Check if request was cancelled
+      if (signal?.aborted || (axios.isAxiosError(error) && error.code === 'ERR_CANCELED')) {
+        throw new Error('Request cancelled');
+      }
+
       const isLastAttempt = attempt === retries;
 
       if (axios.isAxiosError(error)) {
@@ -206,13 +213,17 @@ export async function getAllArtistAlbums(
  */
 export async function getAlbumInfo(
   artist: string,
-  album: string
+  album: string,
+  signal?: AbortSignal
 ): Promise<AlbumInfoResponse> {
-  return apiRequest<AlbumInfoResponse>({
-    method: 'album.getinfo',
-    artist,
-    album,
-  });
+  return apiRequest<AlbumInfoResponse>(
+    {
+      method: 'album.getinfo',
+      artist,
+      album,
+    },
+    signal
+  );
 }
 
 /**
