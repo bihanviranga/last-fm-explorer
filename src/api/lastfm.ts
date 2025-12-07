@@ -6,6 +6,7 @@ import type {
   AlbumInfoResponse,
   TopArtistsResponse,
   TopTracksResponse,
+  Album,
 } from './types';
 
 const API_KEY = import.meta.env.VITE_LASTFM_API_KEY;
@@ -23,7 +24,7 @@ if (!API_KEY || API_KEY === 'your_api_key_here') {
  * - Search methods: wrapped in 'results'
  * - Info/Chart methods: return data directly
  */
-async function apiRequest<T>(
+async function apiRequest<T extends object>(
   params: Record<string, string | number>
 ): Promise<T> {
   const searchParams = new URLSearchParams({
@@ -106,26 +107,52 @@ export async function getArtistTopAlbums(
 }
 
 /**
- * Get all albums for an artist (handles pagination automatically)
+ * Get albums for an artist (loads first page by default)
+ * @param artist - Artist name
+ * @param maxPages - Maximum number of pages to fetch (default: 1)
  */
 export async function getAllArtistAlbums(
-  artist: string
-): Promise<ArtistTopAlbumsResponse['topalbums']['album'][]> {
-  const allAlbums: ArtistTopAlbumsResponse['topalbums']['album'][] = [];
+  artist: string,
+  maxPages: number = 1
+): Promise<Album[]> {
+  const allAlbums: Album[] = [];
   let currentPage = 1;
   let totalPages = 1;
+  const MAX_PAGES = maxPages;
 
   do {
     const response = await getArtistTopAlbums(artist, currentPage, 50);
-    const albums = Array.isArray(response.topalbums.album)
-      ? response.topalbums.album
-      : [response.topalbums.album];
+
+    // Handle case where album might be a single object or array
+    const albums = response.topalbums?.album
+      ? Array.isArray(response.topalbums.album)
+        ? response.topalbums.album
+        : [response.topalbums.album]
+      : [];
 
     allAlbums.push(...albums);
 
-    totalPages = parseInt(response.topalbums['@attr'].totalPages, 10);
+    // Safely parse totalPages (only on first page)
+    if (currentPage === 1) {
+      const totalPagesStr = response.topalbums?.['@attr']?.totalPages;
+      if (totalPagesStr) {
+        totalPages = parseInt(totalPagesStr, 10);
+        if (isNaN(totalPages) || totalPages < 1) {
+          totalPages = 1;
+        }
+      } else {
+        // If no totalPages info, assume this is the only page
+        totalPages = 1;
+      }
+    }
+
     currentPage++;
-  } while (currentPage <= totalPages);
+
+    // Safety check: limit to MAX_PAGES to prevent excessive API calls
+    if (currentPage > MAX_PAGES) {
+      break;
+    }
+  } while (currentPage <= totalPages && currentPage <= MAX_PAGES);
 
   return allAlbums;
 }
