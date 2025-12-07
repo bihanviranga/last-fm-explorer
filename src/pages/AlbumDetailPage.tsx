@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -12,7 +12,7 @@ import {
   Skeleton,
 } from '@chakra-ui/react';
 import { getAlbumInfo } from '../api/lastfm';
-import { getBestImage, decodeArtistName, encodeArtistName, getPlaceholderImage } from '../utils/helpers';
+import { getBestImage, decodeArtistName, getPlaceholderImage } from '../utils/helpers';
 import { useColorModeStore } from '../store/useColorModeStore';
 import ErrorMessage from '../components/common/ErrorMessage';
 import EmptyState from '../components/common/EmptyState';
@@ -157,24 +157,19 @@ export default function AlbumDetailPage() {
   return (
     <VStack gap={6} align="stretch" w="100%">
       <Box>
-        <HStack gap={4} mb={4}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-          >
-            ← Back
-          </Button>
-          <Link to={`/artist/${encodeArtistName(decodedArtistName)}/albums`}>
-            <Text
-              color="brand.600"
-              _hover={{ color: 'brand.700', textDecoration: 'underline' }}
-              cursor="pointer"
-            >
-              View All Albums
-            </Text>
-          </Link>
-        </HStack>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(-1)}
+          color={colorMode === 'dark' ? 'gray.100' : 'gray.900'}
+          _hover={{ 
+            bg: colorMode === 'dark' ? 'gray.700' : 'gray.100',
+            color: colorMode === 'dark' ? 'white' : 'gray.900'
+          }}
+          mb={4}
+        >
+          ← Back
+        </Button>
       </Box>
 
       {isLoading && (

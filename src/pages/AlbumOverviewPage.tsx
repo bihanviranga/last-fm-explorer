@@ -11,6 +11,7 @@ import {
 } from '@chakra-ui/react';
 import { getAllArtistAlbums } from '../api/lastfm';
 import { useAppStore } from '../store/useAppStore';
+import { useColorModeStore } from '../store/useColorModeStore';
 import AlbumCard from '../components/common/AlbumCard';
 import SkeletonGrid from '../components/common/SkeletonGrid';
 import ErrorMessage from '../components/common/ErrorMessage';
@@ -22,6 +23,7 @@ type SortOption = 'name-asc' | 'name-desc' | 'year-asc' | 'year-desc';
 export default function AlbumOverviewPage() {
   const { artistName } = useParams<{ artistName: string }>();
   const navigate = useNavigate();
+  const { colorMode } = useColorModeStore();
   const decodedArtistName = artistName ? decodeURIComponent(artistName) : '';
   const [albums, setAlbums] = useState<Album[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -146,15 +148,19 @@ export default function AlbumOverviewPage() {
   return (
     <VStack gap={6} align="stretch" w="100%">
       <Box>
-        <HStack mb={4} align="center">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-          >
-            ← Back
-          </Button>
-        </HStack>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(-1)}
+          color={colorMode === 'dark' ? 'gray.100' : 'gray.900'}
+          _hover={{ 
+            bg: colorMode === 'dark' ? 'gray.700' : 'gray.100',
+            color: colorMode === 'dark' ? 'white' : 'gray.900'
+          }}
+          mb={4}
+        >
+          ← Back
+        </Button>
         <Heading size="xl" mb={2}>
           Albums by {decodedArtistName}
         </Heading>
