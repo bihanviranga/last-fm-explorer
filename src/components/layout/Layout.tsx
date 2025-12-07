@@ -1,6 +1,8 @@
 import { type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Box, Container, Heading, HStack } from '@chakra-ui/react';
+import { useColorModeStore } from '../../store/useColorModeStore';
+import ColorModeToggle from '../common/ColorModeToggle';
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,10 +11,17 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const isHome = location.pathname === '/';
+  const { colorMode } = useColorModeStore();
+
+  const bgPrimary = colorMode === 'dark' ? 'gray.900' : 'gray.50';
+  const bgSecondary = colorMode === 'dark' ? 'gray.800' : 'white';
+  const borderColor = colorMode === 'dark' ? 'gray.700' : 'gray.200';
+  const textColor = colorMode === 'dark' ? 'gray.100' : 'gray.900';
+  const textSecondary = colorMode === 'dark' ? 'gray.400' : 'gray.600';
 
   return (
-    <Box minH="100vh" bg="gray.50">
-      <Box as="header" bg="white" borderBottom="1px" borderColor="gray.200" py={4}>
+    <Box minH="100vh" bg={bgPrimary}>
+      <Box as="header" bg={bgSecondary} borderBottom="1px" borderColor={borderColor} py={4}>
         <Container maxW="container.xl">
           <HStack justify="space-between" align="center">
             <Link to="/">
@@ -20,18 +29,21 @@ export default function Layout({ children }: LayoutProps) {
                 Last.fm Explorer
               </Heading>
             </Link>
-            {!isHome && (
-              <Link to="/">
-                <Box
-                  as="span"
-                  color="brand.600"
-                  _hover={{ color: 'brand.700', textDecoration: 'underline' }}
-                  cursor="pointer"
-                >
-                  ← Back to Search
-                </Box>
-              </Link>
-            )}
+            <HStack gap={4}>
+              {!isHome && (
+                <Link to="/">
+                  <Box
+                    as="span"
+                    color="brand.600"
+                    _hover={{ color: 'brand.700', textDecoration: 'underline' }}
+                    cursor="pointer"
+                  >
+                    ← Back to Search
+                  </Box>
+                </Link>
+              )}
+              <ColorModeToggle />
+            </HStack>
           </HStack>
         </Container>
       </Box>

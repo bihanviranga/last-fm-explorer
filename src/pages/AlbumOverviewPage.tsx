@@ -10,6 +10,7 @@ import {
 } from '@chakra-ui/react';
 import { getAllArtistAlbums } from '../api/lastfm';
 import { useAppStore } from '../store/useAppStore';
+import { useColorModeStore } from '../store/useColorModeStore';
 import AlbumCard from '../components/common/AlbumCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
@@ -120,20 +121,26 @@ export default function AlbumOverviewPage() {
     }
   }, [albums, sortBy]);
 
+  const { colorMode } = useColorModeStore();
+  const textSecondary = colorMode === 'dark' ? 'gray.400' : 'gray.600';
+  const bgSelect = colorMode === 'dark' ? '#1a202c' : 'white';
+  const borderSelect = colorMode === 'dark' ? '#4a5568' : '#e2e8f0';
+  const textSelect = colorMode === 'dark' ? 'gray.100' : 'gray.900';
+
   return (
     <VStack gap={6} align="stretch" w="100%">
       <Box>
         <Heading size="xl" mb={2}>
           Albums by {decodedArtistName}
         </Heading>
-        <Text color="gray.600" mb={4}>
+        <Text color={textSecondary} mb={4}>
           {albums.length} album{albums.length !== 1 ? 's' : ''} found
         </Text>
       </Box>
 
       {albums.length > 0 && (
         <HStack justify="flex-end" align="center">
-          <Text fontSize="sm" color="gray.600" mr={2}>
+          <Text fontSize="sm" color={textSecondary} mr={2}>
             Sort by:
           </Text>
           <select
@@ -143,9 +150,10 @@ export default function AlbumOverviewPage() {
             }}
             style={{
               width: '200px',
-              backgroundColor: 'white',
+              backgroundColor: bgSelect,
+              color: textSelect,
               border: '1px solid',
-              borderColor: '#e2e8f0',
+              borderColor: borderSelect,
               borderRadius: '6px',
               padding: '8px 12px',
               fontSize: '14px',
@@ -182,7 +190,7 @@ export default function AlbumOverviewPage() {
 
       {!isLoading && !error && sortedAlbums.length === 0 && (
         <Box textAlign="center" py={8}>
-          <Text color="gray.600">No albums found for this artist.</Text>
+          <Text color={textSecondary}>No albums found for this artist.</Text>
         </Box>
       )}
     </VStack>

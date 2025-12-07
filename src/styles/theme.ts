@@ -1,4 +1,4 @@
-import { createSystem, defaultConfig, defineConfig, defineTokens } from '@chakra-ui/react';
+import { createSystem, defaultConfig, defineConfig, defineTokens, defineSemanticTokens } from '@chakra-ui/react';
 
 const customConfig = defineConfig({
   theme: {
@@ -15,6 +15,31 @@ const customConfig = defineConfig({
           700: { value: '#0369a1' },
           800: { value: '#075985' },
           900: { value: '#0c4a6e' },
+        },
+      },
+    }),
+    semanticTokens: defineSemanticTokens({
+      colors: {
+        bg: {
+          primary: {
+            value: { base: '{colors.gray.50}', _dark: '{colors.gray.900}' },
+          },
+          secondary: {
+            value: { base: '{colors.white}', _dark: '{colors.gray.800}' },
+          },
+        },
+        text: {
+          primary: {
+            value: { base: '{colors.gray.900}', _dark: '{colors.gray.100}' },
+          },
+          secondary: {
+            value: { base: '{colors.gray.600}', _dark: '{colors.gray.400}' },
+          },
+        },
+        border: {
+          default: {
+            value: { base: '{colors.gray.200}', _dark: '{colors.gray.700}' },
+          },
         },
       },
     }),

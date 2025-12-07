@@ -1,6 +1,7 @@
 import { CardRoot, CardBody, Image, Heading, Text } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { getBestImage, encodeArtistName } from '../../utils/helpers';
+import { useColorModeStore } from '../../store/useColorModeStore';
 import type { Album } from '../../api/types';
 import { useState } from 'react';
 
@@ -12,6 +13,8 @@ export default function AlbumCard({ album }: AlbumCardProps) {
   const navigate = useNavigate();
   const imageUrl = getBestImage(album.image);
   const [imgError, setImgError] = useState(false);
+  const { colorMode } = useColorModeStore();
+  const textSecondary = colorMode === 'dark' ? 'gray.400' : 'gray.600';
   
   const artistName = typeof album.artist === 'string' ? album.artist : album.artist.name;
   const albumYear = album.wiki?.published 
@@ -43,7 +46,7 @@ export default function AlbumCard({ album }: AlbumCardProps) {
           {album.name}
         </Heading>
         {albumYear && (
-          <Text fontSize="sm" color="gray.600">
+          <Text fontSize="sm" color={textSecondary}>
             {albumYear}
           </Text>
         )}

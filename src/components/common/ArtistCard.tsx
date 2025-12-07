@@ -1,6 +1,7 @@
 import { CardRoot, CardBody, Image, Heading, Text } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { getBestImage, encodeArtistName } from '../../utils/helpers';
+import { useColorModeStore } from '../../store/useColorModeStore';
 import type { Artist } from '../../api/types';
 import { useState } from 'react';
 
@@ -12,6 +13,8 @@ export default function ArtistCard({ artist }: ArtistCardProps) {
   const navigate = useNavigate();
   const imageUrl = getBestImage(artist.image);
   const [imgError, setImgError] = useState(false);
+  const { colorMode } = useColorModeStore();
+  const textSecondary = colorMode === 'dark' ? 'gray.400' : 'gray.600';
 
   const handleClick = () => {
     navigate(`/artist/${encodeArtistName(artist.name)}/albums`);
@@ -38,7 +41,7 @@ export default function ArtistCard({ artist }: ArtistCardProps) {
           {artist.name}
         </Heading>
         {artist.listeners && (
-          <Text fontSize="sm" color="gray.600">
+          <Text fontSize="sm" color={textSecondary}>
             {parseInt(artist.listeners, 10).toLocaleString()} listeners
           </Text>
         )}

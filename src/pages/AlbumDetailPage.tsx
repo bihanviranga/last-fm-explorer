@@ -11,6 +11,7 @@ import {
 } from '@chakra-ui/react';
 import { getAlbumInfo } from '../api/lastfm';
 import { getBestImage, decodeArtistName, encodeArtistName } from '../utils/helpers';
+import { useColorModeStore } from '../store/useColorModeStore';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import type { Album, Track } from '../api/types';
@@ -94,6 +95,13 @@ export default function AlbumDetailPage() {
   const releaseYear = album?.wiki?.published
     ? new Date(album.wiki.published).getFullYear()
     : null;
+
+  const { colorMode } = useColorModeStore();
+  const textSecondary = colorMode === 'dark' ? 'gray.400' : 'gray.600';
+  const bgCard = colorMode === 'dark' ? 'gray.800' : 'white';
+  const borderCard = colorMode === 'dark' ? 'gray.700' : 'gray.200';
+  const bgHover = colorMode === 'dark' ? 'gray.700' : 'gray.50';
+  const textPrimary = colorMode === 'dark' ? 'gray.100' : 'gray.900';
 
   return (
     <VStack gap={6} align="stretch" w="100%">
@@ -192,7 +200,7 @@ export default function AlbumDetailPage() {
               <Heading size="lg" mb={4}>
                 Track List ({tracks.length} {tracks.length === 1 ? 'track' : 'tracks'})
               </Heading>
-              <Box bg="white" borderRadius="lg" p={4} border="1px" borderColor="gray.200">
+              <Box bg={bgCard} borderRadius="lg" p={4} border="1px" borderColor={borderCard}>
                 <VStack align="stretch" gap={2}>
                   {tracks.map((track, index) => {
                     const trackName = typeof track === 'string' ? track : track.name;
@@ -210,19 +218,19 @@ export default function AlbumDetailPage() {
                         py={2}
                         px={3}
                         borderRadius="md"
-                        _hover={{ bg: 'gray.50' }}
+                        _hover={{ bg: bgHover }}
                         borderBottom="1px"
-                        borderColor="gray.100"
+                        borderColor={borderCard}
                       >
                         <HStack justify="space-between">
                           <HStack gap={4}>
-                            <Text fontSize="sm" color="gray.500" minW="30px">
+                            <Text fontSize="sm" color={textSecondary} minW="30px">
                               {trackNumber}.
                             </Text>
-                            <Text fontWeight="medium">{trackName}</Text>
+                            <Text fontWeight="medium" color={textPrimary}>{trackName}</Text>
                           </HStack>
                           {trackDuration && (
-                            <Text fontSize="sm" color="gray.500">
+                            <Text fontSize="sm" color={textSecondary}>
                               {trackDuration}
                             </Text>
                           )}
@@ -237,7 +245,7 @@ export default function AlbumDetailPage() {
 
           {tracks.length === 0 && (
             <Box textAlign="center" py={8}>
-              <Text color="gray.600">No track information available for this album.</Text>
+              <Text color={textSecondary}>No track information available for this album.</Text>
             </Box>
           )}
         </>
