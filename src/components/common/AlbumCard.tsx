@@ -1,29 +1,31 @@
+import { memo, useState, useMemo, useCallback } from 'react';
 import { CardRoot, CardBody, Image, Heading, Text } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { getBestImage, encodeArtistName, getPlaceholderImage } from '../../utils/helpers';
-import { useColorModeStore } from '../../store/useColorModeStore';
 import type { Album } from '../../api/types';
-import { useState } from 'react';
 
 interface AlbumCardProps {
   album: Album;
 }
 
-export default function AlbumCard({ album }: AlbumCardProps) {
+function AlbumCard({ album }: AlbumCardProps) {
   const navigate = useNavigate();
   const imageUrl = getBestImage(album.image);
   const [imgError, setImgError] = useState(false);
-  const { colorMode } = useColorModeStore();
-  const textSecondary = colorMode === 'dark' ? 'gray.400' : 'gray.600';
-  
-  const artistName = typeof album.artist === 'string' ? album.artist : album.artist.name;
-  const albumYear = album.wiki?.published 
-    ? new Date(album.wiki.published).getFullYear() 
-    : null;
 
-  const handleClick = () => {
+  const artistName = useMemo(
+    () => (typeof album.artist === 'string' ? album.artist : album.artist.name),
+    [album.artist]
+  );
+
+  const albumYear = useMemo(
+    () => (album.wiki?.published ? new Date(album.wiki.published).getFullYear() : null),
+    [album.wiki]
+  );
+
+  const handleClick = useCallback(() => {
     navigate(`/album/${encodeArtistName(artistName)}/${encodeArtistName(album.name)}`);
-  };
+  }, [navigate, artistName, album.name]);
 
   return (
     <CardRoot
@@ -46,7 +48,7 @@ export default function AlbumCard({ album }: AlbumCardProps) {
           {album.name}
         </Heading>
         {albumYear && (
-          <Text fontSize="sm" color={textSecondary}>
+          <Text fontSize="sm" color="textSecondary">
             {albumYear}
           </Text>
         )}
@@ -54,4 +56,6 @@ export default function AlbumCard({ album }: AlbumCardProps) {
     </CardRoot>
   );
 }
+
+export default memo(AlbumCard);
 

@@ -28,6 +28,8 @@ export default function AlbumDetailPage() {
   const lastAlbumRef = useRef<string>('');
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadAlbum = async () => {
       if (!decodedArtistName || !decodedAlbumName) {
         setIsLoading(false);
@@ -55,16 +57,26 @@ export default function AlbumDetailPage() {
 
       try {
         const response = await getAlbumInfo(decodedArtistName, decodedAlbumName);
+        
+        if (cancelled) return;
+        
         setAlbum(response.album);
       } catch (err) {
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : 'Failed to load album details');
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
         isLoadingRef.current = false;
       }
     };
 
     loadAlbum();
+
+    return () => {
+      cancelled = true;
+    };
   }, [decodedArtistName, decodedAlbumName]);
 
   const imageUrl = album ? getBestImage(album.image) : '';
@@ -97,11 +109,6 @@ export default function AlbumDetailPage() {
     : null;
 
   const { colorMode } = useColorModeStore();
-  const textSecondary = colorMode === 'dark' ? 'gray.400' : 'gray.600';
-  const bgCard = colorMode === 'dark' ? 'gray.800' : 'white';
-  const borderCard = colorMode === 'dark' ? 'gray.700' : 'gray.200';
-  const bgHover = colorMode === 'dark' ? 'gray.700' : 'gray.50';
-  const textPrimary = colorMode === 'dark' ? 'gray.100' : 'gray.900';
 
   return (
     <VStack gap={6} align="stretch" w="100%">
@@ -146,25 +153,25 @@ export default function AlbumDetailPage() {
                 <Heading size="xl" mb={2}>
                   {album.name}
                 </Heading>
-                <Text fontSize="lg" color="gray.600" mb={2}>
+                <Text fontSize="lg" color="textSecondary" mb={2}>
                   by {artistNameDisplay}
                 </Text>
                 {releaseYear && (
-                  <Text fontSize="md" color="gray.500">
+                  <Text fontSize="md" color="textSecondary">
                     Released: {releaseYear}
                   </Text>
                 )}
               </Box>
 
               {album.playcount && (
-                <Text fontSize="sm" color="gray.600">
+                <Text fontSize="sm" color="textSecondary">
                   {parseInt(album.playcount, 10).toLocaleString()} plays
                 </Text>
               )}
 
               {album.wiki?.summary && (
                 <Box>
-                  <Text fontSize="sm" color="gray.700" lineHeight="tall">
+                  <Text fontSize="sm" color="textSecondary" lineHeight="tall">
                     {album.wiki.summary.split('<a')[0].trim()}
                   </Text>
                 </Box>
@@ -172,7 +179,7 @@ export default function AlbumDetailPage() {
 
               {album.tags?.tag && album.tags.tag.length > 0 && (
                 <HStack flexWrap="wrap" gap={2}>
-                  <Text fontSize="sm" fontWeight="medium" color="gray.600">
+                  <Text fontSize="sm" fontWeight="medium" color="textSecondary">
                     Tags:
                   </Text>
                   {album.tags.tag.slice(0, 5).map((tag) => (
@@ -181,10 +188,11 @@ export default function AlbumDetailPage() {
                       as="span"
                       px={2}
                       py={1}
-                      bg="gray.100"
+                      bg={colorMode === 'dark' ? 'brand.700' : 'brand.100'}
+                      color={colorMode === 'dark' ? 'brand.100' : 'brand.800'}
                       borderRadius="md"
                       fontSize="xs"
-                      color="gray.700"
+                      fontWeight="semibold"
                     >
                       {tag.name}
                     </Box>
@@ -200,7 +208,7 @@ export default function AlbumDetailPage() {
               <Heading size="lg" mb={4}>
                 Track List ({tracks.length} {tracks.length === 1 ? 'track' : 'tracks'})
               </Heading>
-              <Box bg={bgCard} borderRadius="lg" p={4} border="1px" borderColor={borderCard}>
+              <Box bg="cardBg" borderRadius="lg" p={4} border="1px" borderColor="cardBorder">
                 <VStack align="stretch" gap={2}>
                   {tracks.map((track, index) => {
                     const trackName = typeof track === 'string' ? track : track.name;
@@ -218,19 +226,19 @@ export default function AlbumDetailPage() {
                         py={2}
                         px={3}
                         borderRadius="md"
-                        _hover={{ bg: bgHover }}
+                        _hover={{ bg: colorMode === 'dark' ? 'gray.700' : 'gray.50' }}
                         borderBottom="1px"
-                        borderColor={borderCard}
+                        borderColor="cardBorder"
                       >
                         <HStack justify="space-between">
                           <HStack gap={4}>
-                            <Text fontSize="sm" color={textSecondary} minW="30px">
+                            <Text fontSize="sm" color="textSecondary" minW="30px">
                               {trackNumber}.
                             </Text>
-                            <Text fontWeight="medium" color={textPrimary}>{trackName}</Text>
+                            <Text fontWeight="medium" color="text">{trackName}</Text>
                           </HStack>
                           {trackDuration && (
-                            <Text fontSize="sm" color={textSecondary}>
+                            <Text fontSize="sm" color="textSecondary">
                               {trackDuration}
                             </Text>
                           )}
@@ -245,7 +253,7 @@ export default function AlbumDetailPage() {
 
           {tracks.length === 0 && (
             <Box textAlign="center" py={8}>
-              <Text color={textSecondary}>No track information available for this album.</Text>
+              <Text color="textSecondary">No track information available for this album.</Text>
             </Box>
           )}
         </>

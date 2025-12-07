@@ -10,7 +10,6 @@ import {
 } from '@chakra-ui/react';
 import { useSearchStore } from '../store/useSearchStore';
 import { useAppStore } from '../store/useAppStore';
-import { useColorModeStore } from '../store/useColorModeStore';
 import { searchArtist, getTopArtists, getTopTracks } from '../api/lastfm';
 import ArtistCard from '../components/common/ArtistCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -92,22 +91,23 @@ export default function SearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Debounced search
+  // Debounced search with cancellation
   useEffect(() => {
+    let cancelled = false;
     const timeoutId = setTimeout(() => {
-      handleSearch(searchQuery);
+      if (!cancelled) {
+        handleSearch(searchQuery);
+      }
     }, 500);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
   }, [searchQuery, handleSearch]);
 
   const displayArtists = results.length > 0 ? results : popularContent.topArtists;
   const showPopular = results.length === 0 && !isLoading && !error;
-  const { colorMode } = useColorModeStore();
-  
-  const bgInput = colorMode === 'dark' ? 'gray.800' : 'white';
-  const textSecondary = colorMode === 'dark' ? 'gray.400' : 'gray.600';
-  const textPlaceholder = colorMode === 'dark' ? 'gray.500' : 'gray.400';
 
   return (
     <VStack gap={6} align="stretch" w="100%">
@@ -115,21 +115,21 @@ export default function SearchPage() {
         <Heading size="xl" mb={2}>
           {showPopular ? 'Popular Artists' : 'Search Results'}
         </Heading>
-        <Text color={textSecondary} mb={4}>
+        <Text color="textSecondary" mb={4}>
           {showPopular
             ? 'Discover popular artists on Last.fm'
             : `Found ${results.length} artist${results.length !== 1 ? 's' : ''}`}
         </Text>
       </Box>
 
-      <InputGroup startElement={<Text fontSize="lg" color={textPlaceholder}>🔍</Text>} w="100%">
+      <InputGroup startElement={<Text fontSize="lg" color="textPlaceholder">🔍</Text>} w="100%">
         <Input
           placeholder="Search for artists..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          bg={bgInput}
+          bg="inputBg"
           size="lg"
-          color={colorMode === 'dark' ? 'gray.100' : 'gray.900'}
+          color="inputText"
         />
       </InputGroup>
 
@@ -147,7 +147,7 @@ export default function SearchPage() {
 
       {!isLoading && !error && displayArtists.length === 0 && searchQuery && (
         <Box textAlign="center" py={8}>
-          <Text color={textSecondary}>No artists found. Try a different search term.</Text>
+          <Text color="textSecondary">No artists found. Try a different search term.</Text>
         </Box>
       )}
     </VStack>

@@ -11,21 +11,31 @@ import type {
 
 const API_KEY = import.meta.env.VITE_LASTFM_API_KEY;
 const BASE_URL = 'https://ws.audioscrobbler.com/2.0/';
+const REQUEST_TIMEOUT = 10000; // 10 seconds
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 1000; // 1 second
 
-if (!API_KEY || API_KEY === 'your_api_key_here') {
+// Validate API key in development
+if (import.meta.env.DEV && (!API_KEY || API_KEY === 'your_api_key_here')) {
   console.warn(
     'Last.fm API key is not set. Please add VITE_LASTFM_API_KEY to your .env file'
   );
 }
 
 /**
- * Base function to make Last.fm API requests
+ * Sleep utility for retry delays
+ */
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Base function to make Last.fm API requests with retry logic and timeout
  * Last.fm API returns data in different formats:
  * - Search methods: wrapped in 'results'
  * - Info/Chart methods: return data directly
  */
 async function apiRequest<T extends object>(
-  params: Record<string, string | number>
+  params: Record<string, string | number>,
+  retries = MAX_RETRIES
 ): Promise<T> {
   const searchParams = new URLSearchParams({
     api_key: API_KEY || '',
@@ -37,41 +47,75 @@ async function apiRequest<T extends object>(
 
   const url = `${BASE_URL}?${searchParams.toString()}`;
 
-  try {
-    const response = await axios.get<LastFmApiResponse<T> | T>(url, {
-      headers: {
-        'User-Agent': 'last-fm-frontend/1.0.0',
-      },
-    });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await axios.get<LastFmApiResponse<T> | T>(url, {
+        headers: {
+          'User-Agent': 'last-fm-frontend/1.0.0',
+        },
+        timeout: REQUEST_TIMEOUT,
+      });
 
-    const data = response.data;
+      const data = response.data;
 
-    // Check for API errors (Last.fm returns error at root level)
-    if ('error' in data && data.error) {
-      throw new Error(
-        ('message' in data && data.message) || `API Error: ${data.error}`
-      );
-    }
-
-    // If response has 'results' property (search methods), return it
-    if ('results' in data && data.results) {
-      return data.results as T;
-    }
-
-    // Otherwise, return data directly (info/chart methods)
-    return data as T;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      if (error.response) {
-        throw new Error(
-          `API request failed: ${error.response.status} ${error.response.statusText}`
-        );
-      } else if (error.request) {
-        throw new Error('Network error: No response from server');
+      // Check for API errors (Last.fm returns error at root level)
+      if ('error' in data && data.error) {
+        const errorMessage =
+          ('message' in data && data.message) || `API Error: ${data.error}`;
+        // Don't retry on API errors (4xx), only on network errors
+        throw new Error(errorMessage);
       }
+
+      // If response has 'results' property (search methods), return it
+      if ('results' in data && data.results) {
+        return data.results as T;
+      }
+
+      // Otherwise, return data directly (info/chart methods)
+      return data as T;
+    } catch (error) {
+      const isLastAttempt = attempt === retries;
+
+      if (axios.isAxiosError(error)) {
+        // Don't retry on client errors (4xx)
+        if (error.response && error.response.status >= 400 && error.response.status < 500) {
+          throw new Error(
+            `API request failed: ${error.response.status} ${error.response.statusText}`
+          );
+        }
+
+        // Retry on network errors or server errors (5xx)
+        if (!isLastAttempt && (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK' || (error.response && error.response.status >= 500))) {
+          await sleep(RETRY_DELAY * (attempt + 1)); // Exponential backoff
+          continue;
+        }
+
+        if (error.code === 'ECONNABORTED') {
+          throw new Error('Request timeout: The server took too long to respond');
+        }
+
+        if (error.request) {
+          throw new Error('Network error: Unable to connect to the server. Please check your internet connection.');
+        }
+
+        if (error.response) {
+          throw new Error(
+            `API request failed: ${error.response.status} ${error.response.statusText}`
+          );
+        }
+      }
+
+      // If it's the last attempt or not a retryable error, throw
+      if (isLastAttempt || !(error instanceof Error && error.message.includes('timeout'))) {
+        throw error;
+      }
+
+      // Wait before retrying
+      await sleep(RETRY_DELAY * (attempt + 1));
     }
-    throw error;
   }
+
+  throw new Error('API request failed after all retry attempts');
 }
 
 /**

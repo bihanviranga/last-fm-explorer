@@ -10,7 +10,6 @@ import {
 } from '@chakra-ui/react';
 import { getAllArtistAlbums } from '../api/lastfm';
 import { useAppStore } from '../store/useAppStore';
-import { useColorModeStore } from '../store/useColorModeStore';
 import AlbumCard from '../components/common/AlbumCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
@@ -29,6 +28,8 @@ export default function AlbumOverviewPage() {
   const lastArtistRef = useRef<string>('');
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadAlbums = async () => {
       if (!decodedArtistName) {
         setIsLoading(false);
@@ -46,8 +47,10 @@ export default function AlbumOverviewPage() {
         // If we have cached data, use it
         const cached = useAppStore.getState().albumCache[cacheKey];
         if (cached && cached.length > 0) {
-          setAlbums(cached);
-          setIsLoading(false);
+          if (!cancelled) {
+            setAlbums(cached);
+            setIsLoading(false);
+          }
           return;
         }
       }
@@ -62,8 +65,10 @@ export default function AlbumOverviewPage() {
       // Check cache first - access store directly to avoid dependency issues
       const cached = useAppStore.getState().albumCache[cacheKey];
       if (cached && cached.length > 0) {
-        setAlbums(cached);
-        setIsLoading(false);
+        if (!cancelled) {
+          setAlbums(cached);
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -74,7 +79,9 @@ export default function AlbumOverviewPage() {
       try {
         // Load only first page (50 albums)
         const allAlbums = await getAllArtistAlbums(decodedArtistName, 1);
-        
+
+        if (cancelled) return;
+
         if (allAlbums && allAlbums.length > 0) {
           setAlbums(allAlbums);
           useAppStore.getState().cacheAlbums(decodedArtistName, allAlbums);
@@ -83,15 +90,22 @@ export default function AlbumOverviewPage() {
           setError('No albums found for this artist');
         }
       } catch (err) {
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : 'Failed to load albums');
         setAlbums([]);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
         isLoadingRef.current = false;
       }
     };
 
     loadAlbums();
+
+    return () => {
+      cancelled = true;
+    };
   }, [decodedArtistName]);
 
   const sortedAlbums = useMemo(() => {
@@ -121,11 +135,7 @@ export default function AlbumOverviewPage() {
     }
   }, [albums, sortBy]);
 
-  const { colorMode } = useColorModeStore();
-  const textSecondary = colorMode === 'dark' ? 'gray.400' : 'gray.600';
-  const bgSelect = colorMode === 'dark' ? '#1a202c' : 'white';
-  const borderSelect = colorMode === 'dark' ? '#4a5568' : '#e2e8f0';
-  const textSelect = colorMode === 'dark' ? 'gray.100' : 'gray.900';
+  // Use semantic tokens for consistent theming
 
   return (
     <VStack gap={6} align="stretch" w="100%">
@@ -133,14 +143,14 @@ export default function AlbumOverviewPage() {
         <Heading size="xl" mb={2}>
           Albums by {decodedArtistName}
         </Heading>
-        <Text color={textSecondary} mb={4}>
+        <Text color="textSecondary" mb={4}>
           {albums.length} album{albums.length !== 1 ? 's' : ''} found
         </Text>
       </Box>
 
       {albums.length > 0 && (
         <HStack justify="flex-end" align="center">
-          <Text fontSize="sm" color={textSecondary} mr={2}>
+          <Text fontSize="sm" color="textSecondary" mr={2}>
             Sort by:
           </Text>
           <select
@@ -150,10 +160,10 @@ export default function AlbumOverviewPage() {
             }}
             style={{
               width: '200px',
-              backgroundColor: bgSelect,
-              color: textSelect,
+              backgroundColor: 'var(--chakra-colors-inputBg)',
+              color: 'var(--chakra-colors-inputText)',
               border: '1px solid',
-              borderColor: borderSelect,
+              borderColor: 'var(--chakra-colors-cardBorder)',
               borderRadius: '6px',
               padding: '8px 12px',
               fontSize: '14px',
@@ -161,7 +171,7 @@ export default function AlbumOverviewPage() {
             }}
             onFocus={(e) => {
               e.target.style.outline = '2px solid';
-              e.target.style.outlineColor = '#0284c7';
+              e.target.style.outlineColor = 'var(--chakra-colors-brand-600)';
               e.target.style.outlineOffset = '2px';
             }}
             onBlur={(e) => {
@@ -190,7 +200,7 @@ export default function AlbumOverviewPage() {
 
       {!isLoading && !error && sortedAlbums.length === 0 && (
         <Box textAlign="center" py={8}>
-          <Text color={textSecondary}>No albums found for this artist.</Text>
+          <Text color="textSecondary">No albums found for this artist.</Text>
         </Box>
       )}
     </VStack>
