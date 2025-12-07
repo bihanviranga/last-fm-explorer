@@ -86,7 +86,7 @@ export interface LastFmApiResponse<T> {
 
 export interface TopArtistsResponse {
   artists: {
-    artist: Artist[];
+    artist: Artist | Artist[];
     '@attr': {
       page: string;
       perPage: string;
@@ -98,7 +98,7 @@ export interface TopArtistsResponse {
 
 export interface TopTracksResponse {
   tracks: {
-    track: Track[];
+    track: Track | Track[];
     '@attr': {
       page: string;
       perPage: string;
@@ -110,7 +110,7 @@ export interface TopTracksResponse {
 
 export interface ArtistTopAlbumsResponse {
   topalbums: {
-    album: Album[];
+    album: Album | Album[];
     '@attr': {
       artist: string;
       page: string;
@@ -136,7 +136,7 @@ export interface ArtistSearchResponse {
   'opensearch:startIndex': string;
   'opensearch:itemsPerPage': string;
   artistmatches: {
-    artist: Artist[];
+    artist: Artist | Artist[];
   };
 }
 

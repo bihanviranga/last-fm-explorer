@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -7,8 +7,9 @@ import {
   HStack,
   Text,
   VStack,
+  Button,
 } from '@chakra-ui/react';
-import { getAllArtistAlbums } from '../api/lastfm';
+import { getAllArtistAlbums, getArtistTopAlbums } from '../api/lastfm';
 import { useAppStore } from '../store/useAppStore';
 import AlbumCard from '../components/common/AlbumCard';
 import SkeletonGrid from '../components/common/SkeletonGrid';
@@ -20,11 +21,13 @@ type SortOption = 'name-asc' | 'name-desc' | 'year-asc' | 'year-desc';
 
 export default function AlbumOverviewPage() {
   const { artistName } = useParams<{ artistName: string }>();
+  const navigate = useNavigate();
   const decodedArtistName = artistName ? decodeURIComponent(artistName) : '';
   const [albums, setAlbums] = useState<Album[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('name-asc');
+  const [totalAlbums, setTotalAlbums] = useState<number | null>(null);
   const isLoadingRef = useRef(false);
   const lastArtistRef = useRef<string>('');
   const cancelledRef = useRef(false);
@@ -59,6 +62,18 @@ export default function AlbumOverviewPage() {
         // Only update if artist hasn't changed
         if (currentArtist === decodedArtistName && !cancelledRef.current) {
           setAlbums(cached);
+          // Try to get total from API for display
+          getArtistTopAlbums(currentArtist, 1, 50)
+            .then((response) => {
+              const totalStr = response.topalbums?.['@attr']?.total;
+              const total = totalStr ? parseInt(totalStr, 10) : null;
+              if (currentArtist === decodedArtistName && !cancelledRef.current) {
+                setTotalAlbums(total);
+              }
+            })
+            .catch(() => {
+              // Silently fail, we still have cached albums
+            });
           setIsLoading(false);
           setError(null);
         }
@@ -72,6 +87,11 @@ export default function AlbumOverviewPage() {
       setAlbums([]); // Clear previous albums while loading
 
       try {
+        // Get first page to get total count
+        const firstPageResponse = await getArtistTopAlbums(currentArtist, 1, 50);
+        const totalStr = firstPageResponse.topalbums?.['@attr']?.total;
+        const total = totalStr ? parseInt(totalStr, 10) : null;
+
         const allAlbums = await getAllArtistAlbums(currentArtist, 1);
 
         // Only update if artist hasn't changed and not cancelled
@@ -81,9 +101,11 @@ export default function AlbumOverviewPage() {
 
         if (allAlbums && allAlbums.length > 0) {
           setAlbums(allAlbums);
+          setTotalAlbums(total);
           useAppStore.getState().cacheAlbums(currentArtist, allAlbums);
         } else {
           setAlbums([]);
+          setTotalAlbums(null);
         }
       } catch (err) {
         // Only update if artist hasn't changed and not cancelled
@@ -144,11 +166,22 @@ export default function AlbumOverviewPage() {
   return (
     <VStack gap={6} align="stretch" w="100%">
       <Box>
+        <HStack mb={4} align="center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+          >
+            ← Back
+          </Button>
+        </HStack>
         <Heading size="xl" mb={2}>
           Albums by {decodedArtistName}
         </Heading>
         <Text color="textSecondary" mb={4}>
-          {albums.length} album{albums.length !== 1 ? 's' : ''} found
+          {totalAlbums !== null && totalAlbums > albums.length
+            ? `Showing ${albums.length} of ${totalAlbums.toLocaleString()} album${totalAlbums !== 1 ? 's' : ''}`
+            : `${albums.length} album${albums.length !== 1 ? 's' : ''} found`}
         </Text>
       </Box>
 

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import NotFoundPage from './pages/NotFoundPage';
 
 // Lazy load pages for code splitting
 const SearchPage = lazy(() => import('./pages/SearchPage'));
@@ -19,6 +20,7 @@ function App() {
               <Route path="/" element={<SearchPage />} />
               <Route path="/artist/:artistName/albums" element={<AlbumOverviewPage />} />
               <Route path="/album/:artistName/:albumName" element={<AlbumDetailPage />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </Layout>

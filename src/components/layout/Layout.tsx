@@ -16,8 +16,6 @@ export default function Layout({ children }: LayoutProps) {
   const bgPrimary = colorMode === 'dark' ? 'gray.900' : 'gray.50';
   const bgSecondary = colorMode === 'dark' ? 'gray.800' : 'white';
   const borderColor = colorMode === 'dark' ? 'gray.700' : 'gray.200';
-  const textColor = colorMode === 'dark' ? 'gray.100' : 'gray.900';
-  const textSecondary = colorMode === 'dark' ? 'gray.400' : 'gray.600';
 
   return (
     <Box minH="100vh" bg={bgPrimary}>

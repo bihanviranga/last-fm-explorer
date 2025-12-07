@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -8,17 +8,19 @@ import {
   VStack,
   HStack,
   Grid,
+  Button,
+  Skeleton,
 } from '@chakra-ui/react';
 import { getAlbumInfo } from '../api/lastfm';
 import { getBestImage, decodeArtistName, encodeArtistName, getPlaceholderImage } from '../utils/helpers';
 import { useColorModeStore } from '../store/useColorModeStore';
-import { Skeleton, Box as SkeletonBox } from '@chakra-ui/react';
 import ErrorMessage from '../components/common/ErrorMessage';
 import EmptyState from '../components/common/EmptyState';
 import type { Album, Track } from '../api/types';
 
 export default function AlbumDetailPage() {
   const { artistName, albumName } = useParams<{ artistName: string; albumName: string }>();
+  const navigate = useNavigate();
   const decodedArtistName = artistName ? decodeArtistName(artistName) : '';
   const decodedAlbumName = albumName ? decodeArtistName(albumName) : '';
   
@@ -114,19 +116,39 @@ export default function AlbumDetailPage() {
   return (
     <VStack gap={6} align="stretch" w="100%">
       <Box>
-        <Link to={`/artist/${encodeArtistName(decodedArtistName)}/albums`}>
-          <Text
-            color="brand.600"
-            _hover={{ color: 'brand.700', textDecoration: 'underline' }}
-            cursor="pointer"
-            mb={4}
+        <HStack gap={4} mb={4}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
           >
-            ← Back to Albums
-          </Text>
-        </Link>
+            ← Back
+          </Button>
+          <Link to={`/artist/${encodeArtistName(decodedArtistName)}/albums`}>
+            <Text
+              color="brand.600"
+              _hover={{ color: 'brand.700', textDecoration: 'underline' }}
+              cursor="pointer"
+            >
+              View All Albums
+            </Text>
+          </Link>
+        </HStack>
       </Box>
 
-      {isLoading && <LoadingSpinner />}
+      {isLoading && (
+        <VStack gap={8} align="stretch" w="100%">
+          <Grid templateColumns={{ base: '1fr', md: '300px 1fr' }} gap={8} w="100%">
+            <Skeleton h="300px" w="100%" borderRadius="lg" />
+            <VStack align="flex-start" gap={4}>
+              <Skeleton h="32px" w="80%" />
+              <Skeleton h="24px" w="60%" />
+              <Skeleton h="20px" w="40%" />
+              <Skeleton h="100px" w="100%" />
+            </VStack>
+          </Grid>
+        </VStack>
+      )}
 
       {error && <ErrorMessage message={error} />}
 
@@ -173,12 +195,12 @@ export default function AlbumDetailPage() {
               {album.wiki?.summary && (
                 <Box>
                   <Text fontSize="sm" color="textSecondary" lineHeight="tall">
-                    {album.wiki.summary.split('<a')[0].trim()}
+                    {album.wiki.summary.split('<a')[0]?.trim() || album.wiki.summary.trim()}
                   </Text>
                 </Box>
               )}
 
-              {album.tags?.tag && album.tags.tag.length > 0 && (
+              {album.tags?.tag && Array.isArray(album.tags.tag) && album.tags.tag.length > 0 && (
                 <HStack flexWrap="wrap" gap={2}>
                   <Text fontSize="sm" fontWeight="medium" color="textSecondary">
                     Tags:
