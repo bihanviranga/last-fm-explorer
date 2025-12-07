@@ -126,19 +126,17 @@ export interface AlbumInfoResponse {
 }
 
 export interface ArtistSearchResponse {
-  results: SearchResult & {
-    'opensearch:Query': {
-      '#text': string;
-      role: string;
-      searchTerms: string;
-      startPage: string;
-    };
-    'opensearch:totalResults': string;
-    'opensearch:startIndex': string;
-    'opensearch:itemsPerPage': string;
-    artistmatches: {
-      artist: Artist[];
-    };
+  'opensearch:Query': {
+    '#text': string;
+    role: string;
+    searchTerms: string;
+    startPage: string;
+  };
+  'opensearch:totalResults': string;
+  'opensearch:startIndex': string;
+  'opensearch:itemsPerPage': string;
+  artistmatches: {
+    artist: Artist[];
   };
 }
 
