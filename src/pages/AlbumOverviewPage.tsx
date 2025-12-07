@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -118,6 +118,20 @@ export default function AlbumOverviewPage() {
     };
   }, [decodedArtistName]);
 
+  // Helper function to extract year from album
+  const getAlbumYear = useCallback((album: Album): number | null => {
+    if (!album.wiki?.published) {
+      return null;
+    }
+    
+    const date = new Date(album.wiki.published);
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+    
+    return date.getFullYear();
+  }, []);
+
   const sortedAlbums = useMemo(() => {
     const sorted = [...albums];
 
@@ -128,22 +142,60 @@ export default function AlbumOverviewPage() {
         return sorted.sort((a, b) => b.name.localeCompare(a.name));
       case 'year-asc': {
         return sorted.sort((a, b) => {
-          const yearA = a.wiki?.published ? new Date(a.wiki.published).getFullYear() : 0;
-          const yearB = b.wiki?.published ? new Date(b.wiki.published).getFullYear() : 0;
-          return yearA - yearB;
+          const yearA = getAlbumYear(a);
+          const yearB = getAlbumYear(b);
+          
+          // Both have years - sort by year
+          if (yearA !== null && yearB !== null) {
+            if (yearA !== yearB) {
+              return yearA - yearB;
+            }
+            // Same year, sort by name
+            return a.name.localeCompare(b.name);
+          }
+          
+          // One has year, one doesn't - albums with years come first
+          if (yearA !== null && yearB === null) {
+            return -1;
+          }
+          if (yearA === null && yearB !== null) {
+            return 1;
+          }
+          
+          // Neither has year - sort by name
+          return a.name.localeCompare(b.name);
         });
       }
       case 'year-desc': {
         return sorted.sort((a, b) => {
-          const yearA = a.wiki?.published ? new Date(a.wiki.published).getFullYear() : 0;
-          const yearB = b.wiki?.published ? new Date(b.wiki.published).getFullYear() : 0;
-          return yearB - yearA;
+          const yearA = getAlbumYear(a);
+          const yearB = getAlbumYear(b);
+          
+          // Both have years - sort by year (descending)
+          if (yearA !== null && yearB !== null) {
+            if (yearA !== yearB) {
+              return yearB - yearA;
+            }
+            // Same year, sort by name
+            return a.name.localeCompare(b.name);
+          }
+          
+          // One has year, one doesn't - albums with years come first
+          if (yearA !== null && yearB === null) {
+            return -1;
+          }
+          if (yearA === null && yearB !== null) {
+            return 1;
+          }
+          
+          // Neither has year - sort by name
+          return a.name.localeCompare(b.name);
         });
       }
       default:
         return sorted;
     }
-  }, [albums, sortBy]);
+  }, [albums, sortBy, getAlbumYear]);
 
   return (
     <VStack gap={6} align="stretch" w="100%">
