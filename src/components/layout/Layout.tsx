@@ -36,8 +36,8 @@ export default function Layout({ children }: LayoutProps) {
         </Container>
       </Box>
 
-      <Box as="main" py={8}>
-        <Container maxW="container.xl">{children}</Container>
+      <Box as="main" py={8} w="100%">
+        <Container maxW="container.xl" w="100%">{children}</Container>
       </Box>
     </Box>
   );

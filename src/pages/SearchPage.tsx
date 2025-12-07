@@ -104,7 +104,7 @@ export default function SearchPage() {
   const showPopular = results.length === 0 && !isLoading && !error;
 
   return (
-    <VStack gap={6} align="stretch">
+    <VStack gap={6} align="stretch" w="100%">
       <Box>
         <Heading size="xl" mb={2}>
           {showPopular ? 'Popular Artists' : 'Search Results'}
@@ -116,7 +116,7 @@ export default function SearchPage() {
         </Text>
       </Box>
 
-      <InputGroup startElement={<Text fontSize="lg" color="gray.400">🔍</Text>}>
+      <InputGroup startElement={<Text fontSize="lg" color="gray.400">🔍</Text>} w="100%">
         <Input
           placeholder="Search for artists..."
           value={searchQuery}
@@ -131,7 +131,7 @@ export default function SearchPage() {
       {error && <ErrorMessage message={error} />}
 
       {!isLoading && !error && displayArtists.length > 0 && (
-        <Grid templateColumns="repeat(auto-fill, minmax(200px, 1fr))" gap={6}>
+        <Grid templateColumns="repeat(auto-fill, minmax(200px, 1fr))" gap={6} w="100%">
           {displayArtists.map((artist) => (
             <ArtistCard key={artist.name} artist={artist} />
           ))}
