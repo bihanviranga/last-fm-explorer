@@ -12,8 +12,9 @@ import {
 import { getAlbumInfo } from '../api/lastfm';
 import { getBestImage, decodeArtistName, encodeArtistName, getPlaceholderImage } from '../utils/helpers';
 import { useColorModeStore } from '../store/useColorModeStore';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import { Skeleton, Box as SkeletonBox } from '@chakra-ui/react';
 import ErrorMessage from '../components/common/ErrorMessage';
+import EmptyState from '../components/common/EmptyState';
 import type { Album, Track } from '../api/types';
 
 export default function AlbumDetailPage() {
@@ -252,9 +253,11 @@ export default function AlbumDetailPage() {
           )}
 
           {tracks.length === 0 && (
-            <Box textAlign="center" py={8}>
-              <Text color="textSecondary">No track information available for this album.</Text>
-            </Box>
+            <EmptyState
+              icon="🎵"
+              title="No track information"
+              description="Track information is not available for this album on Last.fm."
+            />
           )}
         </>
       )}

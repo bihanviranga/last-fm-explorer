@@ -11,8 +11,9 @@ import {
 import { getAllArtistAlbums } from '../api/lastfm';
 import { useAppStore } from '../store/useAppStore';
 import AlbumCard from '../components/common/AlbumCard';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import SkeletonGrid from '../components/common/SkeletonGrid';
 import ErrorMessage from '../components/common/ErrorMessage';
+import EmptyState from '../components/common/EmptyState';
 import type { Album } from '../api/types';
 
 type SortOption = 'name-asc' | 'name-desc' | 'year-asc' | 'year-desc';
@@ -26,85 +27,90 @@ export default function AlbumOverviewPage() {
   const [sortBy, setSortBy] = useState<SortOption>('name-asc');
   const isLoadingRef = useRef(false);
   const lastArtistRef = useRef<string>('');
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
+    const currentArtist = decodedArtistName;
+
+    // Reset cancelled flag when artist changes
+    if (lastArtistRef.current !== currentArtist) {
+      cancelledRef.current = false;
+      lastArtistRef.current = currentArtist;
+      isLoadingRef.current = false;
+    }
 
     const loadAlbums = async () => {
-      if (!decodedArtistName) {
+      if (!currentArtist) {
         setIsLoading(false);
+        setAlbums([]);
         return;
       }
 
-      const cacheKey = decodedArtistName.toLowerCase();
+      const cacheKey = currentArtist.toLowerCase();
 
-      // Prevent loading the same artist multiple times
-      if (lastArtistRef.current === decodedArtistName) {
-        // If we're already loading, don't start another request
-        if (isLoadingRef.current) {
-          return;
-        }
-        // If we have cached data, use it
-        const cached = useAppStore.getState().albumCache[cacheKey];
-        if (cached && cached.length > 0) {
-          if (!cancelled) {
-            setAlbums(cached);
-            setIsLoading(false);
-          }
-          return;
-        }
-      }
-
-      // Prevent multiple simultaneous calls
-      if (isLoadingRef.current) {
+      // Prevent multiple simultaneous calls for the same artist
+      if (isLoadingRef.current && lastArtistRef.current === currentArtist) {
         return;
       }
 
-      lastArtistRef.current = decodedArtistName;
-
-      // Check cache first - access store directly to avoid dependency issues
+      // Check cache first
       const cached = useAppStore.getState().albumCache[cacheKey];
       if (cached && cached.length > 0) {
-        if (!cancelled) {
+        // Only update if artist hasn't changed
+        if (currentArtist === decodedArtistName && !cancelledRef.current) {
           setAlbums(cached);
           setIsLoading(false);
+          setError(null);
         }
         return;
       }
 
+      // No cache, fetch from API
       isLoadingRef.current = true;
       setIsLoading(true);
       setError(null);
+      setAlbums([]); // Clear previous albums while loading
 
       try {
-        // Load only first page (50 albums)
-        const allAlbums = await getAllArtistAlbums(decodedArtistName, 1);
+        const allAlbums = await getAllArtistAlbums(currentArtist, 1);
 
-        if (cancelled) return;
+        // Only update if artist hasn't changed and not cancelled
+        if (currentArtist !== decodedArtistName || cancelledRef.current) {
+          return;
+        }
 
         if (allAlbums && allAlbums.length > 0) {
           setAlbums(allAlbums);
-          useAppStore.getState().cacheAlbums(decodedArtistName, allAlbums);
+          useAppStore.getState().cacheAlbums(currentArtist, allAlbums);
         } else {
           setAlbums([]);
-          setError('No albums found for this artist');
         }
       } catch (err) {
-        if (cancelled) return;
+        // Only update if artist hasn't changed and not cancelled
+        if (currentArtist !== decodedArtistName || cancelledRef.current) {
+          return;
+        }
         setError(err instanceof Error ? err.message : 'Failed to load albums');
         setAlbums([]);
       } finally {
-        if (!cancelled) {
+        // Only update loading if artist hasn't changed and not cancelled
+        if (currentArtist === decodedArtistName && !cancelledRef.current) {
           setIsLoading(false);
         }
-        isLoadingRef.current = false;
+        // Only reset ref if this was for the current artist
+        if (lastArtistRef.current === currentArtist) {
+          isLoadingRef.current = false;
+        }
       }
     };
 
     loadAlbums();
 
     return () => {
-      cancelled = true;
+      // Only cancel if artist is actually changing
+      if (currentArtist !== decodedArtistName) {
+        cancelledRef.current = true;
+      }
     };
   }, [decodedArtistName]);
 
@@ -134,8 +140,6 @@ export default function AlbumOverviewPage() {
         return sorted;
     }
   }, [albums, sortBy]);
-
-  // Use semantic tokens for consistent theming
 
   return (
     <VStack gap={6} align="stretch" w="100%">
@@ -186,22 +190,52 @@ export default function AlbumOverviewPage() {
         </HStack>
       )}
 
-      {isLoading && <LoadingSpinner />}
+      {isLoading && albums.length === 0 && <SkeletonGrid count={8} />}
 
-      {error && <ErrorMessage message={error} />}
-
-      {!isLoading && !error && sortedAlbums.length > 0 && (
-        <Grid templateColumns="repeat(auto-fill, minmax(200px, 1fr))" gap={6} w="100%">
-          {sortedAlbums.map((album, index) => (
-            <AlbumCard key={`${album.name}-${index}`} album={album} />
-          ))}
-        </Grid>
+      {error && (
+        <ErrorMessage 
+          message={error} 
+          onRetry={() => {
+            setError(null);
+            setIsLoading(true);
+            getAllArtistAlbums(decodedArtistName, 1)
+              .then((albums) => {
+                if (albums && albums.length > 0) {
+                  setAlbums(albums);
+                  useAppStore.getState().cacheAlbums(decodedArtistName, albums);
+                } else {
+                  setAlbums([]);
+                }
+              })
+              .catch((err) => {
+                setError(err instanceof Error ? err.message : 'Failed to load albums');
+              })
+              .finally(() => setIsLoading(false));
+          }}
+          retryLabel="Try Again"
+        />
       )}
 
-      {!isLoading && !error && sortedAlbums.length === 0 && (
-        <Box textAlign="center" py={8}>
-          <Text color="textSecondary">No albums found for this artist.</Text>
+      {!isLoading && !error && sortedAlbums.length > 0 && (
+        <Box
+          style={{
+            animation: 'fadeIn 0.3s ease-in',
+          }}
+        >
+          <Grid templateColumns="repeat(auto-fill, minmax(200px, 1fr))" gap={6} w="100%">
+            {sortedAlbums.map((album, index) => (
+              <AlbumCard key={`${album.name}-${index}`} album={album} />
+            ))}
+          </Grid>
         </Box>
+      )}
+
+      {!isLoading && !error && sortedAlbums.length === 0 && albums.length === 0 && (
+        <EmptyState
+          icon="💿"
+          title="No albums found"
+          description={`We couldn't find any albums for ${decodedArtistName}. The artist may not have any albums listed on Last.fm.`}
+        />
       )}
     </VStack>
   );

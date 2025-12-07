@@ -12,8 +12,9 @@ import { useSearchStore } from '../store/useSearchStore';
 import { useAppStore } from '../store/useAppStore';
 import { searchArtist, getTopArtists, getTopTracks } from '../api/lastfm';
 import ArtistCard from '../components/common/ArtistCard';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import SkeletonGrid from '../components/common/SkeletonGrid';
 import ErrorMessage from '../components/common/ErrorMessage';
+import EmptyState from '../components/common/EmptyState';
 
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -133,22 +134,36 @@ export default function SearchPage() {
         />
       </InputGroup>
 
-      {isLoading && <LoadingSpinner />}
+      {isLoading && <SkeletonGrid count={6} />}
 
-      {error && <ErrorMessage message={error} />}
+      {error && (
+        <ErrorMessage 
+          message={error} 
+          onRetry={() => handleSearch(searchQuery)}
+          retryLabel="Try Again"
+        />
+      )}
 
       {!isLoading && !error && displayArtists.length > 0 && (
-        <Grid templateColumns="repeat(auto-fill, minmax(200px, 1fr))" gap={6} w="100%">
-          {displayArtists.map((artist) => (
-            <ArtistCard key={artist.name} artist={artist} />
-          ))}
-        </Grid>
+        <Box
+          style={{
+            animation: 'fadeIn 0.3s ease-in',
+          }}
+        >
+          <Grid templateColumns="repeat(auto-fill, minmax(200px, 1fr))" gap={6} w="100%">
+            {displayArtists.map((artist) => (
+              <ArtistCard key={artist.name} artist={artist} />
+            ))}
+          </Grid>
+        </Box>
       )}
 
       {!isLoading && !error && displayArtists.length === 0 && searchQuery && (
-        <Box textAlign="center" py={8}>
-          <Text color="textSecondary">No artists found. Try a different search term.</Text>
-        </Box>
+        <EmptyState
+          icon="🔍"
+          title="No artists found"
+          description="We couldn't find any artists matching your search. Try a different search term or check your spelling."
+        />
       )}
     </VStack>
   );
